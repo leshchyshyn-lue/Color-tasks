@@ -6,22 +6,26 @@ import com.example.colortasks.exception.MustContainException;
 import com.example.colortasks.exception.NotFoundException;
 import com.example.colortasks.repository.TaskRepository;
 import com.example.colortasks.util.TaskColor;
+import com.example.colortasks.validator.TaskValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class TaskService {
     private final TaskRepository taskRepository;
-    private final UserDetailsServiceImpl userDetailsServiceImpl;
+    private final TaskValidator taskValidator;
+
+    private final UserService userService;
 
     @Autowired
-    public TaskService(TaskRepository taskRepository, UserDetailsServiceImpl userDetailsServiceImpl) {
+    public TaskService(TaskRepository taskRepository, TaskValidator taskValidator, UserService userService) {
         this.taskRepository = taskRepository;
-        this.userDetailsServiceImpl = userDetailsServiceImpl;
+        this.taskValidator = taskValidator;
+        this.userService = userService;
     }
 
     public Task findTaskById(int id) throws NotFoundException {
@@ -30,17 +34,16 @@ public class TaskService {
     }
 
     public Task createNewTask(Task task) throws MustContainException, AlreadyExistsException {
-        verifyData(task);
-        String timeNow = String.valueOf(LocalDateTime.now());
-        String builder = timeNow.substring(0, 10) + " " +
-                timeNow.substring(11, 16);
-        task.setCreatedAt(builder);
-        task.setUser(userDetailsServiceImpl.findUserBySession());
+        taskValidator.taskFieldValidate(task);
+        String dateTime = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm")
+                .format(LocalDateTime.now());
+        task.setCreatedAt(dateTime);
+        task.setUser(userService.findUser());
         return taskRepository.save(task);
     }
 
     public Task updateTask(Task newTask, int id) throws NotFoundException, MustContainException, AlreadyExistsException {
-        verifyData(newTask);
+        taskValidator.taskFieldValidate(newTask);
         Task task = findTaskById(id);
         task.setTaskName(newTask.getTaskName());
         task.setDescription(newTask.getDescription());
@@ -54,32 +57,14 @@ public class TaskService {
     }
 
     public void deleteAllTasksByUserId() {
-        taskRepository.deleteAllTasksByUserId(userDetailsServiceImpl.findUserBySession().getId());
+        taskRepository.deleteAllTasksByUserId(userService.findUser().getId());
     }
 
     public void deleteAllTasksByColor(TaskColor color) {
-        taskRepository.deleteTasksByColor(String.valueOf(color), userDetailsServiceImpl.findUserBySession().getId());
+        taskRepository.deleteTasksByColor(String.valueOf(color), userService.findUser().getId());
     }
 
     public List<Task> findAllTasksByColor(TaskColor color) {
-        return taskRepository.findAllTasksByColor(userDetailsServiceImpl.findUserBySession().getId(), String.valueOf(color));
+        return taskRepository.findAllTasksByColor(userService.findUser().getId(), String.valueOf(color));
     }
-
-    private void verifyData(Task task) throws MustContainException, AlreadyExistsException {
-        Optional<Task> byName = taskRepository.findByTaskNameAndUser(task.getTaskName(), userDetailsServiceImpl.findUserBySession());
-        if (byName.isPresent() && byName.get().getId() != task.getId()) {
-                throw new AlreadyExistsException("Task with this name already exists");
-        }
-        if (task.getTaskName() == null || task.getTaskName().equals("")) {
-            throw new MustContainException("Enter a task name");
-        }
-        if (task.getDescription() == null || task.getDescription().length() <= 5) {
-            throw new MustContainException("The description is too short");
-        }
-        if (task.getColor() == null) {
-            throw new MustContainException("Choose a color");
-        }
-    }
-
-
 }

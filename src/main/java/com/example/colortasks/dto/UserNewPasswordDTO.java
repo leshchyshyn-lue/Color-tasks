@@ -30,5 +30,4 @@ public class UserNewPasswordDTO {
         this.reEnterPassword = reEnterPassword;
     }
 
-
 }

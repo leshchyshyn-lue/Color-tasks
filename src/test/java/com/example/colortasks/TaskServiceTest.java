@@ -8,8 +8,9 @@ import com.example.colortasks.exception.MustContainException;
 import com.example.colortasks.exception.NotFoundException;
 import com.example.colortasks.repository.TaskRepository;
 import com.example.colortasks.service.TaskService;
-import com.example.colortasks.service.UserDetailsServiceImpl;
+import com.example.colortasks.service.UserService;
 import com.example.colortasks.util.TaskColor;
+import com.example.colortasks.validator.TaskValidator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -35,8 +36,6 @@ public class TaskServiceTest {
     private static final String TASK_NAME = "name";
     private static final String TASK_DESCRIPTION = "description";
 
-    private static final String INVALID_TASK_DESCRIPTION = "short";
-
     @InjectMocks
     private TaskService taskService;
 
@@ -44,8 +43,18 @@ public class TaskServiceTest {
     private TaskRepository taskRepository;
 
     @Mock
-    private UserDetailsServiceImpl userDetailsService;
+    private TaskValidator taskValidator;
 
+    @Mock
+    private UserService userService;
+
+    public Task createTask() {
+        Task task = new Task();
+        task.setColor(TaskColor.RED);
+        task.setTaskName(TASK_NAME);
+        task.setDescription(TASK_DESCRIPTION);
+        return task;
+    }
 
     @Test
     public void findTaskByIdSuccess() throws NotFoundException {
@@ -65,6 +74,39 @@ public class TaskServiceTest {
 
         when(taskRepository.findById(task.getId())).thenReturn(Optional.empty());
         assertThrows(NotFoundException.class, () -> taskService.findTaskById(task.getId()));
+    }
+
+    @Test
+    public void deleteAllTasksByColorSuccess() {
+        User user = new User();
+        user.setId(USER_ID);
+
+        Task taskRedColor = createTask();
+        taskRedColor.setUser(user);
+
+        Task taskGreyColor = createTask();
+        taskGreyColor.setUser(user);
+
+        List<Task> tasks = new ArrayList<>();
+        tasks.add(taskRedColor);
+        tasks.add(taskGreyColor);
+
+        user.setTasks(tasks);
+        doNothing().when(taskRepository).deleteTasksByColor(String.valueOf(taskRedColor.getColor()), user.getId());
+        when(userService.findUser()).thenReturn(user);
+
+        assertDoesNotThrow(() -> taskService.deleteAllTasksByColor(taskRedColor.getColor()));
+    }
+
+    @Test
+    public void deleteTaskByIdSuccess() {
+        Task task = new Task();
+        task.setId(TASK_ID);
+
+        when(taskRepository.findById(task.getId())).thenReturn(Optional.of(task));
+        doNothing().when(taskRepository).deleteById(task.getId());
+
+        assertDoesNotThrow(() -> taskService.deleteTaskById(task.getId()));
     }
 
     @Test
@@ -90,8 +132,6 @@ public class TaskServiceTest {
         afterSave.setColor(TaskColor.RED);
         afterSave.setId(TASK_ID);
 
-        when(taskRepository.findByTaskNameAndUser(task.getTaskName(), user)).thenReturn(Optional.empty());
-        when(userDetailsService.findUserBySession()).thenReturn(user);
         when(taskRepository.save(task)).thenReturn(afterSave);
 
         Task result = taskService.createNewTask(task);
@@ -101,61 +141,6 @@ public class TaskServiceTest {
         assertEquals(afterSave.getDescription(), result.getDescription());
         assertEquals(afterSave.getUser(), result.getUser());
         assertEquals(afterSave.getColor(), result.getColor());
-    }
-
-    @Test
-    public void createNewTaskFailAlreadyExistsException() {
-        User user = new User();
-        user.setId(USER_ID);
-
-        Task task = new Task();
-        task.setTaskName(TASK_NAME);
-        task.setId(TASK_ID);
-
-        Task exists = new Task();
-        exists.setTaskName(TASK_NAME);
-        exists.setId(255);
-
-        when(userDetailsService.findUserBySession()).thenReturn(user);
-        when(taskRepository.findByTaskNameAndUser(task.getTaskName(), user)).thenReturn(Optional.of(exists));
-
-        assertThrows(AlreadyExistsException.class, () -> taskService.createNewTask(task));
-    }
-
-    @Test
-    public void createNewTaskFailNameMustContainException() {
-        User user = new User();
-        Task task = new Task();
-        task.setTaskName(null);
-
-        when(userDetailsService.findUserBySession()).thenReturn(user);
-        when(taskRepository.findByTaskNameAndUser(task.getTaskName(), user)).thenReturn(Optional.empty());
-        assertThrows(MustContainException.class, () -> taskService.createNewTask(task));
-    }
-
-    @Test
-    public void createNewTaskFailDescriptionMustContainException() {
-        User user = new User();
-        Task task = new Task();
-        task.setTaskName(TASK_NAME);
-        task.setDescription(INVALID_TASK_DESCRIPTION);
-
-        when(userDetailsService.findUserBySession()).thenReturn(user);
-        when(taskRepository.findByTaskNameAndUser(task.getTaskName(), user)).thenReturn(Optional.empty());
-        assertThrows(MustContainException.class, () -> taskService.createNewTask(task));
-    }
-
-    @Test
-    public void createNewTaskFailColorMustContainException() {
-        User user = new User();
-        Task task = new Task();
-        task.setTaskName(TASK_NAME);
-        task.setDescription(TASK_DESCRIPTION);
-
-
-        when(userDetailsService.findUserBySession()).thenReturn(user);
-        when(taskRepository.findByTaskNameAndUser(task.getTaskName(), user)).thenReturn(Optional.empty());
-        assertThrows(MustContainException.class, () -> taskService.createNewTask(task));
     }
 
     @Test
@@ -199,46 +184,15 @@ public class TaskServiceTest {
     }
 
     @Test
-    public void deleteTaskByIdSuccess() {
-        Task task = new Task();
-        task.setId(TASK_ID);
-
-        when(taskRepository.findById(task.getId())).thenReturn(Optional.of(task));
-        doNothing().when(taskRepository).deleteById(task.getId());
-
-        assertDoesNotThrow(() -> taskService.deleteTaskById(task.getId()));
-    }
-
-    @Test
     public void deleteAllTasksByUserIdSuccess() {
         User user = new User();
         user.setId(USER_ID);
 
-        when(userDetailsService.findUserBySession()).thenReturn(user);
+        when(userService.findUser()).thenReturn(user);
 
         doNothing().when(taskRepository).deleteAllTasksByUserId(user.getId());
 
         assertDoesNotThrow(() -> taskService.deleteAllTasksByUserId());
-    }
-
-    @Test
-    public void deleteAllTasksByColorSuccess() {
-        User user = new User();
-        user.setId(USER_ID);
-
-        Task task = new Task();
-        task.setColor(TaskColor.RED);
-        task.setUser(user);
-
-        List<Task> tasks = new ArrayList<>();
-        tasks.add(task);
-
-        user.setTasks(tasks);
-
-        doNothing().when(taskRepository).deleteTasksByColor(String.valueOf(task.getColor()), user.getId());
-        when(userDetailsService.findUserBySession()).thenReturn(user);
-
-        assertDoesNotThrow(() -> taskService.deleteAllTasksByColor(task.getColor()));
     }
 
     @Test
@@ -253,7 +207,7 @@ public class TaskServiceTest {
         user.setTasks(tasks);
 
         when(taskRepository.findAllTasksByColor(user.getId(), String.valueOf(task.getColor()))).thenReturn(user.getTasks());
-        when(userDetailsService.findUserBySession()).thenReturn(user);
+        when(userService.findUser()).thenReturn(user);
 
         List<Task> result = taskService.findAllTasksByColor(task.getColor());
 
