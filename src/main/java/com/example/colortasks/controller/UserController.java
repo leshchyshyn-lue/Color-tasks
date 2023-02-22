@@ -3,7 +3,6 @@ package com.example.colortasks.controller;
 import com.example.colortasks.dto.UserNewPasswordDTO;
 import com.example.colortasks.entity.User;
 import com.example.colortasks.exception.MustContainException;
-import com.example.colortasks.exception.NotFoundException;
 import com.example.colortasks.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,8 +22,8 @@ public class UserController {
     }
 
     @GetMapping("/user")
-    public ResponseEntity<User> findUser() throws NotFoundException {
-        return ResponseEntity.status(HttpStatus.OK).body(userService.findUserById());
+    public ResponseEntity<User> findUser() {
+        return ResponseEntity.status(HttpStatus.OK).body(userService.findUser());
     }
 
     @PutMapping("/pass")

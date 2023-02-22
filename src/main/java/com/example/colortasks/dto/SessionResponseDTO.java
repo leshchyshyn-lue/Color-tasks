@@ -1,6 +1,6 @@
 package com.example.colortasks.dto;
 
-public class ResponseDTO {
+public class SessionResponseDTO {
     private String sessionId;
 
     public String getSessionId() {

@@ -1,6 +1,6 @@
 package com.example.colortasks.controller;
 
-import com.example.colortasks.dto.ResponseDTO;
+import com.example.colortasks.dto.SessionResponseDTO;
 import com.example.colortasks.dto.UserDTO;
 import com.example.colortasks.exception.NotFoundException;
 import com.example.colortasks.session.SessionRegistry;
@@ -25,11 +25,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseDTO> login(@RequestBody UserDTO user) throws NotFoundException {
+    public ResponseEntity<SessionResponseDTO> login(@RequestBody UserDTO user) throws NotFoundException {
         manager.authenticate(
                 new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
         final String sessionId = sessionRegistry.registerSession(user.getUsername());
-        ResponseDTO response = new ResponseDTO();
+        SessionResponseDTO response = new SessionResponseDTO();
         response.setSessionId(sessionId);
         return ResponseEntity.ok(response);
     }

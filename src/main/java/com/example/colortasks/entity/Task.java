@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import javax.persistence.*;
 
 @Entity
+@Table(name = "tasks")
 public class Task {
 
     @Id
@@ -41,12 +42,6 @@ public class Task {
 
     public Task() {
 
-    }
-
-    public Task(String description, String taskName, TaskColor color) {
-        this.taskName = taskName;
-        this.description = description;
-        this.color = color;
     }
 
     public String getTaskName() {

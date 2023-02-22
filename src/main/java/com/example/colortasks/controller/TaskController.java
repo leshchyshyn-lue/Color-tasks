@@ -1,11 +1,13 @@
 package com.example.colortasks.controller;
 
+import com.example.colortasks.converter.TaskConverter;
+import com.example.colortasks.dto.RequestTaskDTO;
 import com.example.colortasks.entity.Task;
 import com.example.colortasks.exception.AlreadyExistsException;
 import com.example.colortasks.exception.MustContainException;
 import com.example.colortasks.exception.NotFoundException;
 import com.example.colortasks.service.TaskService;
-import com.example.colortasks.service.UserDetailsServiceImpl;
+import com.example.colortasks.service.UserService;
 import com.example.colortasks.util.TaskColor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,17 +22,19 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
-    private final UserDetailsServiceImpl userDetailsServiceImpl;
+    private final UserService userService;
+    private final TaskConverter taskConverter;
 
     @Autowired
-    public TaskController(TaskService taskService, UserDetailsServiceImpl userDetailsServiceImpl) {
+    public TaskController(TaskService taskService, UserService userService, TaskConverter taskConverter) {
         this.taskService = taskService;
-        this.userDetailsServiceImpl = userDetailsServiceImpl;
+        this.userService = userService;
+        this.taskConverter = taskConverter;
     }
 
     @GetMapping("/tasks")
     public List<Task> findListItems() {
-        return userDetailsServiceImpl.findUserBySession().getTasks();
+        return userService.findUser().getTasks();
     }
 
     @GetMapping("/{id}")
@@ -39,8 +43,8 @@ public class TaskController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<Task> createNewTask(@RequestBody Task task) throws MustContainException, AlreadyExistsException {
-        return ResponseEntity.status(HttpStatus.OK).body(taskService.createNewTask(task));
+    public ResponseEntity<Task> createNewTask(@RequestBody RequestTaskDTO requestTaskDTO) throws MustContainException, AlreadyExistsException {
+        return ResponseEntity.status(HttpStatus.OK).body(taskService.createNewTask(taskConverter.convertToTask(requestTaskDTO)));
     }
 
     @PutMapping("/{id}")
