@@ -17,7 +17,6 @@ public class SessionRegistry {
     @Autowired
     public SessionRegistry(final RedisTemplate<String, String> redisTemplate){
         this.redisSessionStorage = redisTemplate.opsForValue();
-
     }
 
     public String registerSession(final  String username) throws NotFoundException {
@@ -31,6 +30,7 @@ public class SessionRegistry {
 
     public String getUsernameForSession(final String sessionId){
             return redisSessionStorage.get(sessionId);
+
     }
 
     private String generateSessionId(){
@@ -39,4 +39,5 @@ public class SessionRegistry {
                         UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8))
         );
     }
+
 }
