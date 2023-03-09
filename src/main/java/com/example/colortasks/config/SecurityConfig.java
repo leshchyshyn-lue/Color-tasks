@@ -39,7 +39,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                                 e.getMessage())
         ).and();
         http.authorizeRequests()
-                .antMatchers("/sch/registration", "/sch/login").permitAll()
+                .antMatchers("/sch/registration", "/sch/login", "/sch/forgot", "/sch/verify", "/sch/forgot/pass").permitAll()
                 .anyRequest().authenticated();
         http.addFilterBefore(
                 sessionFilter, UsernamePasswordAuthenticationFilter.class
